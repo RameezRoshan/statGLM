@@ -23,6 +23,10 @@ Developed strictly from foundational mathematical definitions (Searle 1971, Good
 - **Multivariate Analysis of Variance (MANOVA)**: Evaluates multivariate response models via Wilks' Lambda, Pillai's Trace, Hotelling-Lawley Trace, and Roy's Greatest Root with exact and Rao approximate $F$-tests.
 - **Custom Error Terms**: Evaluates hypotheses using specified model effects as the denominator error term (analogous to classical `TEST H = effect E = error` statements).
 - **Random Effects & Expected Mean Squares (`random_glm`)**: Complete implementation of the SAS GLM `RANDOM` statement. Computes Expected Mean Squares (EMS) coefficients (Goodnight & Speed 1978), quadratic forms in fixed effects (`Q` option), and mixed model hypothesis tests using exact error denominators or Satterthwaite pseudo-$F$ approximations (`TEST` option). Seamlessly integrated into `stat_glm(..., random = ...)` and `anova_glm(..., random = ...)`.
+- **Modern Publication-Ready Graphics (SAS PROC GLM ODS Graphics)**:
+  - Master S3 `plot()` methods for `stat_glm` and `lsmeans_stat_glm` with intelligent model design auto-detection.
+  - Complete suite of 14 SAS ODS Graphics displays: Fit diagnostics panel (`DIAGNOSTICS`), residuals vs covariates (`RESIDUALS`), continuous predictor fit curves with CLM/CLI bands (`FITPLOT`), 2D response surface contours (`CONTOURFIT`), ANCOVA plots with confidence limits (`ANCOVAPLOT`), grouped box plots with jitter and mean diamonds (`BOXPLOT`), two-way interaction plots (`INTPLOT`), nested box plots (`NESTPLOT`), Hsu's pairwise diffograms (`DIFFPLOT`), LS-means confidence intervals/bands (`MEANPLOT`), Dunnett control comparison forest plots (`CONTROLPLOT`), Analysis of Means (`ANOMPLOT`), and subset comparison lines (`LINES`).
+  - Native high-definition vector graphics using `ggplot2`, styled with the clean academic `theme_statglm()` and exported via `save_glm_plot()`.
 
 ---
 
@@ -185,6 +189,68 @@ print(rnd)
 
 # Or seamlessly via anova_glm()
 anova_glm(fit, type = 3, random = ~ person + machine:person)
+```
+
+### 7. Modern Publication-Ready Visualizations
+
+`statGLM` provides full graphical fidelity matching SAS `PROC GLM` ODS Graphics specifications, rendered via `ggplot2` with publication-standard typography and vector resolution:
+
+```r
+library(ggplot2)
+
+# --- A. Master plot.stat_glm() with Intelligent Design Auto-Detection ---
+# Auto-detects two-way factorial design -> produces interaction plot (PLOTS=INTPLOT)
+plot(fit)
+
+# Auto-detects one-way layout -> produces box plot (PLOTS=BOXPLOT)
+fit_1way <- stat_glm(breaks ~ wool, data = warpbreaks)
+plot(fit_1way)
+
+# Auto-detects single continuous predictor -> produces fit curve with CLM & CLI bands (PLOTS=FITPLOT)
+fit_reg <- stat_glm(dist ~ speed, data = cars)
+plot(fit_reg)
+
+# --- B. Comprehensive 8-Panel Fit Diagnostics (PLOTS=DIAGNOSTICS) ---
+# Displays: Residual vs Fitted (LOESS), RStudent vs Fitted, Observed vs Predicted (1:1),
+# RStudent vs Leverage, Cook's D needles (4/n cutoff), Normal Q-Q, Histogram, & RF-spread plot
+plot(fit, which = "diagnostics", label = TRUE)
+
+# Or extract as individual ggplot objects
+diag_plots <- plot(fit, which = "diagnostics", unpack = TRUE)
+
+# --- C. Residuals vs Continuous Covariates (PLOTS=RESIDUALS) ---
+plot(fit_reg, which = "residuals", smooth = TRUE)
+
+# --- D. Analysis of Covariance (ANCOVA) Plots (PLOTS=ANCOVAPLOT) ---
+fit_anc <- stat_glm(breaks ~ wool + tension_num, data = dat)
+plot(fit_anc, which = "ancovaplot", clm = TRUE)
+
+# --- E. 2D Response Surface Contour Plots (PLOTS=CONTOURFIT) ---
+fit_surf <- stat_glm(mpg ~ wt + hp, data = mtcars)
+plot(fit_surf, which = "contourfit", obs = "outlinegradient")
+
+# --- F. LS-Means Multiple Comparisons & Hsu's Diffogram (PLOTS=DIFFPLOT) ---
+lsm <- lsmeans_glm(fit, effect = "wool:tension", adjust = "tukey")
+
+# 1. LS-Means with 95% Confidence Intervals & connecting lines (PLOTS=MEANPLOT)
+plot(lsm, which = "meanplot", connect = TRUE)
+
+# 2. Hsu's (1996) Pairwise Diffogram (Mean-Mean Scatter Plot)
+# Segments crossing the 45-degree diagonal y = x are not statistically significant!
+plot(lsm, which = "diffplot", center = TRUE)
+
+# 3. Dunnett-Style Control Comparisons (PLOTS=CONTROLPLOT)
+plot(lsm, which = "controlplot", control = "A:L")
+
+# 4. Analysis of Means Display (PLOTS=ANOMPLOT)
+# Grand mean central line with Upper and Lower Decision Limits (UDL / LDL)
+plot(lsm, which = "anomplot")
+
+# --- G. High-Definition Publication Export ---
+# Save crisp 300+ DPI graphics ready for academic journals
+p_diff <- plot(lsm, which = "diffplot")
+save_glm_plot(p_diff, "figure_diffogram.png", width = 7, height = 6, dpi = 300)
+save_glm_plot(p_diff, "figure_diffogram.pdf", width = 7, height = 6)
 ```
 
 ---

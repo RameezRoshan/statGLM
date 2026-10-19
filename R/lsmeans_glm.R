@@ -186,7 +186,8 @@ lsmeans_glm <- function(object, effect, by = NULL, at = list(),
   dfe <- object$df.residual
 
   est_lsm <- as.vector(L_mat %*% b)
-  var_lsm <- diag(L_mat %*% G %*% t(L_mat)) * mse
+  cov_lsm <- as.matrix((L_mat %*% G %*% t(L_mat)) * mse)
+  var_lsm <- diag(cov_lsm)
   se_lsm <- sqrt(pmax(0, var_lsm))
 
   est_lsm[!est_flags] <- NA_real_
@@ -302,6 +303,8 @@ lsmeans_glm <- function(object, effect, by = NULL, at = list(),
     adjust = adjust,
     alpha = alpha,
     L = L_mat,
+    vcov = cov_lsm,
+    grid = effect_grid,
     df.residual = dfe
   )
   class(res) <- "lsmeans_stat_glm"

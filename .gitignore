@@ -11,3 +11,4 @@ doc_*.txt
 test_baseline.R
 *.log
 Proc_GLM.pdf
+Rplots.pdf

@@ -302,20 +302,56 @@ vcov.stat_glm <- function(object, ...) {
 }
 
 #' @export
-predict.stat_glm <- function(object, newdata = NULL, ...) {
+predict.stat_glm <- function(object, newdata = NULL, se.fit = FALSE,
+                             interval = c("none", "confidence", "prediction"),
+                             level = 0.95, ...) {
+  interval <- match.arg(interval)
   if (is.null(newdata)) {
-    return(object$fitted.values)
+    pred <- object$fitted.values
+    X_new <- object$design$X_ind
+  } else {
+    fake_df <- as.data.frame(newdata)
+    for (resp_name in object$design$response_names) {
+      fake_df[[resp_name]] <- 0
+    }
+    form <- stats::formula(object$design$terms)
+    d_new <- build_design_glm(form, data = fake_df,
+                              ref_levels = object$design$var_levels)
+    X_new <- d_new$X_ind
+    pred <- as.vector(X_new %*% object$coefficients)
   }
-  fake_df <- as.data.frame(newdata)
-  resp_name <- object$design$response_names[1]
-  if (!resp_name %in% names(fake_df)) {
-    fake_df[[resp_name]] <- 0
+
+  if (se.fit || interval != "none") {
+    mse <- object$mse
+    XG <- as.matrix(X_new %*% object$G)
+    var_mean <- pmax(0, rowSums(XG * X_new) * mse)
+    se <- sqrt(var_mean)
+
+    if (interval != "none") {
+      dfe <- max(1L, as.integer(object$df.residual))
+      t_crit <- stats::qt(1 - (1 - level) / 2, df = dfe)
+      if (interval == "confidence") {
+        lwr <- pred - t_crit * se
+        upr <- pred + t_crit * se
+      } else {
+        se_pred <- sqrt(pmax(0, mse + var_mean))
+        lwr <- pred - t_crit * se_pred
+        upr <- pred + t_crit * se_pred
+      }
+      fit_mat <- cbind(fit = pred, lwr = lwr, upr = upr)
+      if (se.fit) {
+        return(list(fit = fit_mat, se.fit = se, df = dfe, residual.scale = sqrt(mse)))
+      } else {
+        return(fit_mat)
+      }
+    }
+
+    if (se.fit) {
+      return(list(fit = pred, se.fit = se, df = object$df.residual, residual.scale = sqrt(mse)))
+    }
   }
-  d_new <- build_design_glm(stats::formula(object$call), data = fake_df,
-                            ref_levels = object$design$var_levels)
-  X_new <- d_new$X_ind
-  pred <- X_new %*% object$coefficients
-  if (ncol(pred) == 1) as.vector(pred) else pred
+
+  if (is.matrix(pred) && ncol(pred) == 1) as.vector(pred) else pred
 }
 
 #' @export

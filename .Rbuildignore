@@ -5,3 +5,5 @@
 ^statGLM.*\.tar\.gz$
 ^.*\.log$
 ^cran-comments\.md$
+^generate_pdf\.py$
+^statGLM_Publishing_Guide\.pdf$

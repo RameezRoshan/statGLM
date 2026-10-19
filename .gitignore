@@ -1,0 +1,13 @@
+# R files
+.Rhistory
+.RData
+.Ruserdata
+*.Rcheck/
+statGLM_*.tar.gz
+
+# System and temp files
+.system_generated/
+doc_*.txt
+test_baseline.R
+*.log
+Proc_GLM.pdf

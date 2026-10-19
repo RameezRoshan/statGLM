@@ -1,0 +1,17 @@
+Package: statGLM
+Title: Statistical General Linear Models
+Version: 0.1.0
+Authors@R: person("Antigravity", "Team", email = "developer@example.com", role = c("aut", "cre"))
+Description: Clean-room implementation of general linear models, estimable functions, Type I-III sums of squares, least squares means, and multivariate analysis of variance.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    stats,
+    Matrix
+Suggests:
+    testthat (>= 3.0.0),
+    car,
+    MASS
+Config/testthat/edition: 3

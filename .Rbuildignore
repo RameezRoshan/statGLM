@@ -1,0 +1,6 @@
+^Proc_GLM\.pdf$
+^doc_.*\.txt$
+^test_.*\.R$
+^\.git.*$
+^statGLM.*\.tar\.gz$
+^.*\.log$

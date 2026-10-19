@@ -80,7 +80,7 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 }
 
 # Install statGLM from GitHub
-remotes::install_github("your-username/statGLM")
+remotes::install_github("RameezRoshan/statGLM")
 
 # Or install locally
 devtools::install(".")

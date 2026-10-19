@@ -1,7 +1,7 @@
 Package: statGLM
 Title: Statistical General Linear Models
 Version: 0.1.0
-Authors@R: person("Antigravity", "Team", email = "developer@example.com", role = c("aut", "cre"))
+Authors@R: person("Rameez Roshan PM", "Team", email = "rameezroshanpm@gmail.com", role = c("aut", "cre"))
 Description: Clean-room implementation of general linear models, estimable
     functions, Type I, II, and III sums of squares, least squares means
     (marginal means), custom linear contrasts, and multivariate analysis of

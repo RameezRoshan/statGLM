@@ -4,3 +4,4 @@
 ^\.git.*$
 ^statGLM.*\.tar\.gz$
 ^.*\.log$
+^cran-comments\.md$

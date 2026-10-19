@@ -9,6 +9,9 @@
 #' @param formula An object of class \code{\link[stats]{formula}} specifying the model.
 #' @param data A data frame containing the variables in the model.
 #' @param weights An optional numeric vector of positive observation weights.
+#' @param random An optional character vector, one-sided formula (e.g. \code{~ person + machine:person}),
+#'   or comma-separated string declaring which model effects are random (equivalent to
+#'   the SAS GLM \code{RANDOM} statement).
 #' @param ginv_method Character string specifying the generalized inverse method:
 #'   \code{"g2"} (default, reflexive generalized inverse via Goodnight SWEEP with
 #'   redundant parameters set to zero) or \code{"svd"} (Moore-Penrose pseudo-inverse).
@@ -55,7 +58,7 @@
 #' summary(fit)
 #'
 #' @export
-stat_glm <- function(formula, data, weights = NULL,
+stat_glm <- function(formula, data, weights = NULL, random = NULL,
                      ginv_method = c("g2", "svd"), tol = 1e-7) {
   cl <- match.call()
   ginv_method <- match.arg(ginv_method)
@@ -158,6 +161,7 @@ stat_glm <- function(formula, data, weights = NULL,
       aliased = aliased,
       G = G,
       XtX = XtX,
+      random_effects = if (!is.null(random)) parse_random_effects(random, d$term_labels) else NULL,
       design = d,
       weights = weights,
       ginv_method = ginv_method,

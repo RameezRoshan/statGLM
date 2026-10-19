@@ -15,6 +15,11 @@
 #'   (producing 100 * (1 - alpha) percent confidence limits, e.g., 90 percent when \code{alpha = 0.10}).
 #' @param error_term Optional character string naming an effect to use as the denominator
 #'   error term in hypothesis tests (equivalent to the SAS GLM \code{TEST} statement).
+#' @param random An optional character vector, one-sided formula (e.g. \code{~ person + machine:person}),
+#'   or comma-separated string declaring which model effects are random (equivalent to the SAS GLM \code{RANDOM} statement).
+#'   If provided (or if \code{object$random_effects} is present), computes Expected Mean Squares and mixed model ANOVA tests.
+#' @param test Logical; if \code{TRUE} (default), performs hypothesis tests for mixed model ANOVA when \code{random} is specified.
+#' @param q Logical; if \code{TRUE}, computes quadratic form matrices for fixed effects when \code{random} is specified. Defaults to \code{FALSE}.
 #' @param ... Additional arguments passed to methods.
 #'
 #' @return An object of class \code{"anova_stat_glm"} containing ANOVA tables for
@@ -42,7 +47,8 @@
 #'
 #' @export
 anova_glm <- function(object, type = c(1, 3), effectsize = FALSE,
-                      alpha = 0.05, error_term = NULL, ...) {
+                      alpha = 0.05, error_term = NULL, random = NULL,
+                      test = TRUE, q = FALSE, ...) {
   if (!inherits(object, "stat_glm")) {
     stop("'object' must be an object of class 'stat_glm'.")
   }
@@ -326,12 +332,24 @@ anova_glm <- function(object, type = c(1, 3), effectsize = FALSE,
     tables[[t_name]] <- tab
   }
 
+  # Process random effects if specified
+  random_res <- NULL
+  if (is.null(random) && !is.null(object$random_effects)) {
+    random <- object$random_effects
+  }
+  if (!is.null(random) && !isFALSE(random)) {
+    rnd_type <- if (3 %in% type) 3 else type[1]
+    random_res <- random_glm(object, effects = random, test = test, q = q,
+                             type = rnd_type, ...)
+  }
+
   res <- list(
     tables = tables,
     error_term = err_name,
     error_ms = err_ms,
     error_df = err_df,
     custom_error = custom_error,
+    random = random_res,
     dependent_variable = d$response_names[1],
     effectsize = effectsize,
     alpha = alpha,
@@ -356,5 +374,10 @@ print.anova_stat_glm <- function(x, digits = max(3L, getOption("digits") - 3L), 
                         zap.ps = TRUE, P.values = TRUE, has.Pvalue = TRUE, na.print = "")
   }
   cat("\n")
+
+  if (!is.null(x$random)) {
+    print(x$random, digits = digits, ...)
+  }
+
   invisible(x)
 }

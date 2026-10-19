@@ -10,6 +10,9 @@ anova_glm(
   effectsize = FALSE,
   alpha = 0.05,
   error_term = NULL,
+  random = NULL,
+  test = TRUE,
+  q = FALSE,
   ...
 )
 }
@@ -27,6 +30,14 @@ confidence intervals to the ANOVA table. Defaults to \code{FALSE}.}
 
 \item{error_term}{Optional character string naming an effect to use as the denominator
 error term in hypothesis tests (equivalent to the SAS GLM \code{TEST} statement).}
+
+\item{random}{An optional character vector, one-sided formula (e.g. \code{~ person + machine:person}),
+or comma-separated string declaring which model effects are random (equivalent to the SAS GLM \code{RANDOM} statement).
+If provided (or if \code{object$random_effects} is present), computes Expected Mean Squares and mixed model ANOVA tests.}
+
+\item{test}{Logical; if \code{TRUE} (default), performs hypothesis tests for mixed model ANOVA when \code{random} is specified.}
+
+\item{q}{Logical; if \code{TRUE}, computes quadratic form matrices for fixed effects when \code{random} is specified. Defaults to \code{FALSE}.}
 
 \item{...}{Additional arguments passed to methods.}
 }

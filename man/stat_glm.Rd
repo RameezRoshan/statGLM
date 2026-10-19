@@ -8,6 +8,7 @@ stat_glm(
   formula,
   data,
   weights = NULL,
+  random = NULL,
   ginv_method = c("g2", "svd"),
   tol = 1e-07
 )
@@ -18,6 +19,10 @@ stat_glm(
 \item{data}{A data frame containing the variables in the model.}
 
 \item{weights}{An optional numeric vector of positive observation weights.}
+
+\item{random}{An optional character vector, one-sided formula (e.g. \code{~ person + machine:person}),
+or comma-separated string declaring which model effects are random (equivalent to
+the SAS GLM \code{RANDOM} statement).}
 
 \item{ginv_method}{Character string specifying the generalized inverse method:
 \code{"g2"} (default, reflexive generalized inverse via Goodnight SWEEP with

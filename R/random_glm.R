@@ -112,13 +112,9 @@ random_glm <- function(object, effects = NULL, test = TRUE, q = FALSE,
   tab_ss <- an_res$tables[[type_label]]
 
   # Goodnight & Speed (1978) formulation
-  # 1. Full-rank sum-contrast quadratic form components
   X_s_w <- X_sum * w_sqrt
-  XtX_sum <- crossprod(X_s_w)
-  XtX_inv <- tryCatch(solve(XtX_sum), error = function(e) ginv_svd(XtX_sum, tol = tol))
-
-  X_i_w <- X_ind * w_sqrt
-  XtX_ind_cross <- crossprod(X_s_w, X_i_w)
+  rk_sum <- matrix_rank(X_s_w, tol = tol)
+  is_full_rank_sum <- (rk_sum == ncol(X_sum))
 
   # EMS coefficient matrix: Rows = model terms; Cols = Error, random_effects
   ems_cols <- c("Error", random_effects)
@@ -132,35 +128,196 @@ random_glm <- function(object, effects = NULL, test = TRUE, q = FALSE,
 
   q_matrices <- list()
 
-  for (k in seq_len(n_terms)) {
-    cols_k <- which(assign_sum == k)
-    rk_k <- length(cols_k)
+  if (is_full_rank_sum) {
+    # 1. Full-rank sum-contrast quadratic form components
+    XtX_sum <- crossprod(X_s_w)
+    XtX_inv <- tryCatch(solve(XtX_sum), error = function(e) ginv_svd(XtX_sum, tol = tol))
 
-    if (rk_k > 0) {
-      L_k <- XtX_inv[cols_k, , drop = FALSE] %*% XtX_ind_cross
-      V_k <- XtX_inv[cols_k, cols_k, drop = FALSE]
-      V_k_inv <- quad_form_inv(V_k, tol = tol)
+    X_i_w <- X_ind * w_sqrt
+    XtX_ind_cross <- crossprod(X_s_w, X_i_w)
 
-      # For each term j in the model:
-      for (j in seq_len(n_terms)) {
-        cols_j <- which(assign_ind == j)
-        if (length(cols_j) > 0) {
-          L_kj <- L_k[, cols_j, drop = FALSE]
-          # trace(V_k_inv %*% L_kj %*% t(L_kj)) = sum((t(L_kj) %*% V_k_inv) * t(L_kj))
-          val <- sum((t(L_kj) %*% V_k_inv) * t(L_kj)) / rk_k
-          all_coeffs[k, j] <- if (abs(val) > tol) val else 0
-          if (term_labels[j] %in% random_effects) {
-            ems_matrix[k, term_labels[j]] <- if (abs(val) > tol) val else 0
+    for (k in seq_len(n_terms)) {
+      cols_k <- which(assign_sum == k)
+      rk_k <- length(cols_k)
+
+      if (rk_k > 0) {
+        L_k <- XtX_inv[cols_k, , drop = FALSE] %*% XtX_ind_cross
+        V_k <- XtX_inv[cols_k, cols_k, drop = FALSE]
+        V_k_inv <- quad_form_inv(V_k, tol = tol)
+
+        # For each term j in the model:
+        for (j in seq_len(n_terms)) {
+          cols_j <- which(assign_ind == j)
+          if (length(cols_j) > 0) {
+            L_kj <- L_k[, cols_j, drop = FALSE]
+            # trace(V_k_inv %*% L_kj %*% t(L_kj)) = sum((t(L_kj) %*% V_k_inv) * t(L_kj))
+            val <- sum((t(L_kj) %*% V_k_inv) * t(L_kj)) / rk_k
+            all_coeffs[k, j] <- if (abs(val) > tol) val else 0
+            if (term_labels[j] %in% random_effects) {
+              ems_matrix[k, term_labels[j]] <- if (abs(val) > tol) val else 0
+            }
+          }
+        }
+
+        if (q) {
+          # Quadratic form matrix on beta_ind: (1 / rk_k) * L_k' V_k_inv L_k
+          Q_k <- (crossprod(L_k, V_k_inv %*% L_k)) / rk_k
+          colnames(Q_k) <- colnames(X_ind)
+          rownames(Q_k) <- colnames(X_ind)
+          q_matrices[[term_labels[k]]] <- Q_k
+        }
+      }
+    }
+  } else {
+    # 2. Unbalanced design with nested effects or missing factor combinations
+    X_i_w <- X_ind * w_sqrt
+    G_ind <- object$G
+    rank_full <- object$rank
+
+    contained_in_others <- logical(n_terms)
+    for (k in seq_len(n_terms)) {
+      t_vars <- d$term_vars[[term_labels[k]]]
+      for (other_k in seq_len(n_terms)) {
+        if (other_k != k) {
+          other_vars <- d$term_vars[[term_labels[other_k]]]
+          if (is_contained(t_vars, other_vars, d$var_types)) {
+            contained_in_others[k] <- TRUE
+            break
           }
         }
       }
+    }
 
-      if (q) {
-        # Quadratic form matrix on beta_ind: (1 / rk_k) * L_k' V_k_inv L_k
-        Q_k <- (crossprod(L_k, V_k_inv %*% L_k)) / rk_k
-        colnames(Q_k) <- colnames(X_ind)
-        rownames(Q_k) <- colnames(X_ind)
-        q_matrices[[term_labels[k]]] <- Q_k
+    qr_full <- qr(X_i_w)
+
+    for (k in seq_len(n_terms)) {
+      t_lbl <- term_labels[k]
+      if (!contained_in_others[k]) {
+        cols_no_k <- which(assign_ind != k)
+        X_red <- X_i_w[, cols_no_k, drop = FALSE]
+        qr_red <- qr(X_red)
+        df_k <- rank_full - qr_red$rank
+
+        # Self-coefficient for effect k (appears in Q)
+        cols_k <- which(assign_ind == k)
+        Z_k <- X_i_w[, cols_k, drop = FALSE]
+        P_full_Z <- qr.fitted(qr_full, Z_k)
+        P_red_Z <- qr.fitted(qr_red, Z_k)
+        tr_val <- sum(P_full_Z * Z_k) - sum(P_red_Z * Z_k)
+        all_coeffs[k, k] <- if (df_k > 0) tr_val / df_k else 0
+
+        # Random effect coefficients
+        for (r_name in random_effects) {
+          j <- which(term_labels == r_name)
+          if (j == k) {
+            ems_matrix[k, r_name] <- all_coeffs[k, k]
+          } else {
+            cols_j <- which(assign_ind == j)
+            Z_j <- X_i_w[, cols_j, drop = FALSE]
+            P_full_Zj <- qr.fitted(qr_full, Z_j)
+            P_red_Zj <- qr.fitted(qr_red, Z_j)
+            tr_val_j <- sum(P_full_Zj * Z_j) - sum(P_red_Zj * Z_j)
+            val <- if (df_k > 0) tr_val_j / df_k else 0
+            ems_matrix[k, r_name] <- if (abs(val) > tol) val else 0
+            all_coeffs[k, j] <- ems_matrix[k, r_name]
+          }
+        }
+      } else {
+        # Contained term: construct estimable Type III contrast matrix L_k
+        t_vars <- d$term_vars[[t_lbl]]
+        f_vars_k <- t_vars[d$var_types[t_vars] == "factor"]
+
+        actual_cont <- integer(0)
+        for (j in seq_len(n_terms)) {
+          if (j != k && is_contained(t_vars, d$term_vars[[term_labels[j]]], d$var_types)) {
+            actual_cont <- c(actual_cont, j)
+          }
+        }
+
+        if (length(f_vars_k) > 0) {
+          lvls_k <- d$var_levels[[f_vars_k[1]]]
+          n_lvls <- length(lvls_k)
+          cnames_ind <- colnames(X_ind)
+          p_ind <- length(cnames_ind)
+
+          L_rows <- list()
+          for (cr in 1:(n_lvls - 1)) {
+            l1 <- lvls_k[cr]
+            l2 <- lvls_k[cr + 1]
+
+            L_vec <- numeric(p_ind)
+            names(L_vec) <- cnames_ind
+            col_l1 <- paste0(f_vars_k[1], " ", l1)
+            col_l2 <- paste0(f_vars_k[1], " ", l2)
+            if (col_l1 %in% cnames_ind) L_vec[col_l1] <- 1
+            if (col_l2 %in% cnames_ind) L_vec[col_l2] <- -1
+
+            for (m in actual_cont) {
+              cols_m <- which(d$assign_ind == m)
+              cnames_m <- cnames_ind[cols_m]
+
+              pat1 <- paste0(f_vars_k[1], " ", l1)
+              pat2 <- paste0(f_vars_k[1], " ", l2)
+
+              m_l1 <- cols_m[grepl(pat1, cnames_m, fixed = TRUE)]
+              m_l2 <- cols_m[grepl(pat2, cnames_m, fixed = TRUE)]
+
+              pop_l1 <- m_l1[colSums(X_ind[, m_l1, drop = FALSE]) > 0]
+              pop_l2 <- m_l2[colSums(X_ind[, m_l2, drop = FALSE]) > 0]
+
+              outer_f <- setdiff(d$term_vars[[term_labels[m]]], f_vars_k)
+              if (length(outer_f) > 0) {
+                mf_data <- d$model_frame
+                for (of in outer_f) {
+                  if (of %in% names(mf_data)) {
+                    v_in_l1 <- unique(mf_data[[of]][mf_data[[f_vars_k[1]]] == l1])
+                    v_in_l2 <- unique(mf_data[[of]][mf_data[[f_vars_k[1]]] == l2])
+                    v_common <- intersect(v_in_l1, v_in_l2)
+                    if (length(v_common) > 0 && length(v_common) < length(v_in_l1)) {
+                      pat_v <- paste0(of, " ", v_common)
+                      pop_l1 <- pop_l1[sapply(cnames_ind[pop_l1], function(x) any(grepl(pat_v, x)))]
+                      pop_l2 <- pop_l2[sapply(cnames_ind[pop_l2], function(x) any(grepl(pat_v, x)))]
+                    }
+                  }
+                }
+              }
+
+              if (length(pop_l1) > 0) L_vec[pop_l1] <- 1 / length(pop_l1)
+              if (length(pop_l2) > 0) L_vec[pop_l2] <- -1 / length(pop_l2)
+            }
+
+            if (is_estimable(matrix(L_vec, 1), object$XtX, tol = tol)) {
+              L_rows[[length(L_rows) + 1]] <- L_vec
+            }
+          }
+
+          if (length(L_rows) > 0) {
+            L_mat <- do.call(rbind, L_rows)
+            V <- as.matrix(L_mat %*% G_ind %*% t(L_mat))
+            V_inv <- tryCatch(solve(V), error = function(e) ginv_svd(V, tol = tol))
+            df_k <- matrix_rank(V, tol = tol)
+
+            relevant_terms <- unique(c(k, actual_cont, which(term_labels %in% random_effects)))
+            for (j in relevant_terms) {
+              cols_j <- which(assign_ind == j)
+              Z_j <- X_i_w[, cols_j, drop = FALSE]
+              W_kj <- L_mat %*% G_ind %*% crossprod(X_i_w, Z_j)
+              tr_val <- sum((t(W_kj) %*% V_inv) * t(W_kj))
+              val <- if (df_k > 0) tr_val / df_k else 0
+              all_coeffs[k, j] <- if (abs(val) > tol) val else 0
+              if (term_labels[j] %in% random_effects) {
+                ems_matrix[k, term_labels[j]] <- if (abs(val) > tol) val else 0
+              }
+            }
+
+            if (q) {
+              Q_k <- (crossprod(L_mat, V_inv %*% L_mat)) / df_k
+              colnames(Q_k) <- colnames(X_ind)
+              rownames(Q_k) <- colnames(X_ind)
+              q_matrices[[term_labels[k]]] <- Q_k
+            }
+          }
+        }
       }
     }
   }

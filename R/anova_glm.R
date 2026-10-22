@@ -197,26 +197,150 @@ anova_glm <- function(object, type = c(1, 3), effectsize = FALSE,
     ss3_vals <- numeric(n_terms)
     df3_vals <- integer(n_terms)
 
-    # Full-rank sum-contrast quadratic form
+    # Check whether the sum-contrast design matrix is full rank
     X_s_w <- X_sum * w_sqrt
-    XtX_sum <- crossprod(X_s_w)
-    XtX_inv <- tryCatch(solve(XtX_sum), error = function(e) ginv_svd(XtX_sum))
-    b_sum <- as.vector(XtX_inv %*% crossprod(X_s_w, y_w))
+    rk_sum <- matrix_rank(X_s_w)
+    is_full_rank_sum <- (rk_sum == ncol(X_sum))
 
+    # Identify containment across all terms
+    contained_in_others <- logical(n_terms)
     for (k in seq_len(n_terms)) {
-      cols_k <- which(d$assign_sum == k)
-      if (length(cols_k) > 0) {
-        b_k <- b_sum[cols_k]
-        V_k <- XtX_inv[cols_k, cols_k, drop = FALSE]
-        V_k_inv <- quad_form_inv(V_k)
-        ss_val <- as.numeric(crossprod(b_k, V_k_inv %*% b_k))
-        df_val <- matrix_rank(V_k)
+      t_vars <- d$term_vars[[term_labels[k]]]
+      for (other_k in seq_len(n_terms)) {
+        if (other_k != k) {
+          other_vars <- d$term_vars[[term_labels[other_k]]]
+          if (is_contained(t_vars, other_vars, d$var_types)) {
+            contained_in_others[k] <- TRUE
+            break
+          }
+        }
+      }
+    }
 
-        ss3_vals[k] <- max(0, ss_val)
-        df3_vals[k] <- df_val
-      } else {
-        ss3_vals[k] <- 0
-        df3_vals[k] <- 0L
+    if (is_full_rank_sum) {
+      # Standard orthogonal factorial design without nesting / empty cells
+      XtX_sum <- crossprod(X_s_w)
+      XtX_inv <- tryCatch(solve(XtX_sum), error = function(e) ginv_svd(XtX_sum))
+      b_sum <- as.vector(XtX_inv %*% crossprod(X_s_w, y_w))
+
+      for (k in seq_len(n_terms)) {
+        cols_k <- which(d$assign_sum == k)
+        if (length(cols_k) > 0) {
+          b_k <- b_sum[cols_k]
+          V_k <- XtX_inv[cols_k, cols_k, drop = FALSE]
+          V_k_inv <- quad_form_inv(V_k)
+          ss_val <- as.numeric(crossprod(b_k, V_k_inv %*% b_k))
+          df_val <- matrix_rank(V_k)
+
+          ss3_vals[k] <- max(0, ss_val)
+          df3_vals[k] <- df_val
+        } else {
+          ss3_vals[k] <- 0
+          df3_vals[k] <- 0L
+        }
+      }
+    } else {
+      # Unbalanced design with nested effects or missing factor combinations
+      rank_full <- object$rank
+      sse_full <- object$sse
+      b_ind <- as.vector(object$coefficients)
+      G_ind <- object$G
+      XtX_ind <- object$XtX
+      cnames_ind <- colnames(X_ind)
+      p_ind <- length(cnames_ind)
+
+      for (k in seq_len(n_terms)) {
+        t_lbl <- term_labels[k]
+        if (!contained_in_others[k]) {
+          # Non-contained term: partial sum of squares adjusting for all other terms
+          cols_without_k <- which(d$assign_ind != k)
+          fit_red <- fit_submodel(X_ind[, cols_without_k, drop = FALSE])
+          ss3_vals[k] <- max(0, fit_red$sse - sse_full)
+          df3_vals[k] <- max(0L, rank_full - fit_red$rank)
+        } else {
+          # Contained term in rank-deficient model:
+          # Construct Type III estimable contrast matrix L_k on X_ind
+          t_vars <- d$term_vars[[t_lbl]]
+          f_vars_k <- t_vars[d$var_types[t_vars] == "factor"]
+
+          actual_cont <- integer(0)
+          for (j in seq_len(n_terms)) {
+            if (j != k && is_contained(t_vars, d$term_vars[[term_labels[j]]], d$var_types)) {
+              actual_cont <- c(actual_cont, j)
+            }
+          }
+
+          if (length(f_vars_k) > 0) {
+            lvls_k <- d$var_levels[[f_vars_k[1]]]
+            n_lvls <- length(lvls_k)
+
+            L_rows <- list()
+            for (cr in 1:(n_lvls - 1)) {
+              l1 <- lvls_k[cr]
+              l2 <- lvls_k[cr + 1]
+
+              L_vec <- numeric(p_ind)
+              names(L_vec) <- cnames_ind
+              col_l1 <- paste0(f_vars_k[1], " ", l1)
+              col_l2 <- paste0(f_vars_k[1], " ", l2)
+              if (col_l1 %in% cnames_ind) L_vec[col_l1] <- 1
+              if (col_l2 %in% cnames_ind) L_vec[col_l2] <- -1
+
+              for (m in actual_cont) {
+                cols_m <- which(d$assign_ind == m)
+                cnames_m <- cnames_ind[cols_m]
+
+                pat1 <- paste0(f_vars_k[1], " ", l1)
+                pat2 <- paste0(f_vars_k[1], " ", l2)
+
+                m_l1 <- cols_m[grepl(pat1, cnames_m, fixed = TRUE)]
+                m_l2 <- cols_m[grepl(pat2, cnames_m, fixed = TRUE)]
+
+                pop_l1 <- m_l1[colSums(X_ind[, m_l1, drop = FALSE]) > 0]
+                pop_l2 <- m_l2[colSums(X_ind[, m_l2, drop = FALSE]) > 0]
+
+                outer_f <- setdiff(d$term_vars[[term_labels[m]]], f_vars_k)
+                if (length(outer_f) > 0) {
+                  mf_data <- d$model_frame
+                  for (of in outer_f) {
+                    if (of %in% names(mf_data)) {
+                      v_in_l1 <- unique(mf_data[[of]][mf_data[[f_vars_k[1]]] == l1])
+                      v_in_l2 <- unique(mf_data[[of]][mf_data[[f_vars_k[1]]] == l2])
+                      v_common <- intersect(v_in_l1, v_in_l2)
+                      if (length(v_common) > 0 && length(v_common) < length(v_in_l1)) {
+                        pat_v <- paste0(of, " ", v_common)
+                        pop_l1 <- pop_l1[sapply(cnames_ind[pop_l1], function(x) any(grepl(pat_v, x)))]
+                        pop_l2 <- pop_l2[sapply(cnames_ind[pop_l2], function(x) any(grepl(pat_v, x)))]
+                      }
+                    }
+                  }
+                }
+
+                if (length(pop_l1) > 0) L_vec[pop_l1] <- 1 / length(pop_l1)
+                if (length(pop_l2) > 0) L_vec[pop_l2] <- -1 / length(pop_l2)
+              }
+
+              if (is_estimable(matrix(L_vec, 1), XtX_ind)) {
+                L_rows[[length(L_rows) + 1]] <- L_vec
+              }
+            }
+
+            if (length(L_rows) > 0) {
+              L_mat <- do.call(rbind, L_rows)
+              Lb <- as.vector(L_mat %*% b_ind)
+              V <- as.matrix(L_mat %*% G_ind %*% t(L_mat))
+              V_inv <- tryCatch(solve(V), error = function(e) ginv_svd(V))
+              ss3_vals[k] <- max(0, as.numeric(t(Lb) %*% V_inv %*% Lb))
+              df3_vals[k] <- matrix_rank(V)
+            } else {
+              ss3_vals[k] <- 0
+              df3_vals[k] <- 0L
+            }
+          } else {
+            ss3_vals[k] <- 0
+            df3_vals[k] <- 0L
+          }
+        }
       }
     }
 

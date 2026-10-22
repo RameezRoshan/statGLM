@@ -1,6 +1,6 @@
 Package: statGLM
 Title: Statistical General Linear Models
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: person("Rameez Roshan PM", email = "rameezroshanpm@gmail.com", role = c("aut", "cre"))
 Description: Clean-room implementation of general linear models, estimable
     functions, Type I, II, and III sums of squares, least squares means

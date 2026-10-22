@@ -7,8 +7,16 @@ statGLM_*.tar.gz
 
 # System and temp files
 .system_generated/
+scratch/
 doc_*.txt
 test_baseline.R
 *.log
 Proc_GLM.pdf
 Rplots.pdf
+
+# Analysis and benchmark files
+harv.xlsx
+harv_results.pdf
+harv_statglm_analysis.R
+harv_glm_complete_analysis_report.*
+*.png

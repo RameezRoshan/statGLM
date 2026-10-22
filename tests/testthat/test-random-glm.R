@@ -190,3 +190,24 @@ test_that("Input validation and error handling", {
   # Invalid SS type
   expect_error(random_glm(fit, effects = "wool", type = 2), "'type' must be either 1 or 3")
 })
+
+test_that("random_glm handles nested random effects with rank-deficient designs", {
+  # Nested design: B nested in A, B is random
+  dat_nested <- data.frame(
+    A = factor(c(rep("1", 8), rep("2", 12))),
+    B = factor(c(rep("1", 4), rep("2", 4), rep("3", 4), rep("4", 4), rep("5", 4))),
+    y = c(10, 12, 11, 13,  15, 14, 16, 17,  20, 22, 21, 23,  25, 24, 26, 27,  30, 31, 32, 29)
+  )
+  fit_nested <- stat_glm(y ~ A + A:B, data = dat_nested)
+  rnd <- random_glm(fit_nested, effects = ~ A:B, test = TRUE)
+
+  # Check EMS matrix
+  expect_equal(rnd$ems_matrix["A:B", "Error"], 1.0)
+  expect_equal(unname(rnd$ems_matrix["A:B", "A:B"]), 4.0, tolerance = 1e-5)
+
+  # A:B should test against MS(Error)
+  tests <- rnd$tests
+  rownames(tests) <- tests$Source
+  expect_equal(tests["A:B", "Error Term"], "MS(Error)")
+  expect_equal(unname(tests["A:B", "DF"]), 3)
+})

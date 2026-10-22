@@ -139,3 +139,27 @@ test_that("Custom error term (TEST statement) correctly updates F and p-values",
   expected_f <- t3_cust["wool", "Mean Square"] / ms_interaction
   expect_equal(t3_cust["wool", "F Value"], expected_f, tolerance = 1e-6)
 })
+
+test_that("Type III sums of squares handles nested unbalanced designs correctly", {
+  # Nested design: factor B nested in factor A, unbalanced levels per branch
+  # A has 2 levels: A1 has B in {1, 2}, A2 has B in {3, 4, 5} (total 5 levels of B, but 3 DF nested)
+  dat_nested <- data.frame(
+    A = factor(c(rep("1", 8), rep("2", 12))),
+    B = factor(c(rep("1", 4), rep("2", 4), rep("3", 4), rep("4", 4), rep("5", 4))),
+    y = c(10, 12, 11, 13,  15, 14, 16, 17,  20, 22, 21, 23,  25, 24, 26, 27,  30, 31, 32, 29)
+  )
+  fit_nested <- stat_glm(y ~ A + A:B, data = dat_nested)
+  an_res <- anova_glm(fit_nested, type = c(1, 3))
+
+  t1 <- an_res$tables[["Type I"]]
+  t3 <- an_res$tables[["Type III"]]
+
+  # Type I and Type III DF for nested factor A:B should be 5 - 2 = 3 DF
+  expect_equal(t1["A:B", "DF"], 3L)
+  expect_equal(t3["A:B", "DF"], 3L)
+  expect_equal(t1["A", "DF"], 1L)
+  expect_equal(t3["A", "DF"], 1L)
+
+  # For non-contained term A:B, Type I SS and Type III SS should agree identically
+  expect_equal(t3["A:B", "Sum of Squares"], t1["A:B", "Sum of Squares"], tolerance = 1e-6)
+})

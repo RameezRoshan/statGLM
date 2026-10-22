@@ -1,3 +1,12 @@
+# statGLM 0.2.1
+
+* **Bug Fix for Type III Sums of Squares in Nested and Unbalanced Designs**:
+  - Resolved degrees of freedom and sums of squares distortion in `anova_glm(..., type = 3)` for nested models and designs with structural empty cells.
+  - Implemented a two-tiered engine: when the sum-contrast design matrix $X_{\text{sum}}$ is rank-deficient, `anova_glm()` calculates exact partial sums of squares and rank differences via submodel reduction on indicator columns for non-contained effects, and constructs exact estimable contrast matrices across populated strata for contained effects, matching SAS PROC GLM Type III SS and DF exactly.
+* **Bug Fix for Expected Mean Squares (EMS) and Satterthwaite Mixed Model Tests**:
+  - In `random_glm()`, updated Goodnight & Speed (1978) Expected Mean Square calculations for rank-deficient nested models to evaluate quadratic form projections directly on the indicator column space.
+  - Resolves variance component coefficients (e.g. for nested random effects like `dam(batch stock)`), ensuring exact denominator degrees of freedom, error term linear combinations, and pseudo-F test statistics matching SAS `RANDOM ... / TEST;`.
+
 # statGLM 0.2.0
 
 * Implemented comprehensive, modern, high-definition, publication-ready plotting capabilities matching all SAS `PROC GLM` ODS Graphics specifications:

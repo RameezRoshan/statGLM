@@ -28,10 +28,10 @@ Calculates point estimates, standard errors, t-statistics, and confidence
 intervals for estimable linear functions of parameters \eqn{L \beta}.
 }
 \examples{
-data(warpbreaks)
-fit <- stat_glm(breaks ~ wool + tension, data = warpbreaks)
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock + culturetype + sex, data = harv)
 
-# Estimate wool effect A - B
-estimate_glm(fit, list(wool = c(1, -1)), name = "Wool A - Wool B")
+# Estimate Stock 1 - Stock 2 difference
+estimate_glm(fit, list(stock = c(1, -1)), name = "Stock 1 - Stock 2")
 
 }

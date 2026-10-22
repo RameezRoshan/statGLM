@@ -67,8 +67,8 @@ or Moore-Penrose pseudo-inverse). Handles univariate responses, multivariate
 responses (MANOVA), weighted least squares, and over-parameterized factor models.
 }
 \examples{
-data(mtcars)
-fit <- stat_glm(mpg ~ cyl + disp + hp, data = mtcars)
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 summary(fit)
 
 }

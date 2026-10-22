@@ -582,8 +582,8 @@ plot_nested <- function(object, effect = NULL, boxwidth = 0.7, clusterwidth = 0.
 #' @return A \code{ggplot} object, a grob arrangement, or a list of plots.
 #'
 #' @examples
-#' data(warpbreaks)
-#' fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 #' plot(fit) # Automatically produces interaction plot
 #' plot(fit, which = "diagnostics")
 #'

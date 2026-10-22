@@ -8,3 +8,9 @@
 ^generate_pdf\.py$
 ^statGLM_Publishing_Guide\.pdf$
 ^\.github$
+^scripts$
+^scratch$
+^harv\..*$
+^harv_.*
+^.*\.png$
+^Rplots\.pdf$

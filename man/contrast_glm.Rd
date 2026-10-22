@@ -39,10 +39,10 @@ of each hypothesis row before calculating the contrast sum of squares,
 degrees of freedom, mean square, F-statistic, and p-value.
 }
 \examples{
-data(warpbreaks)
-fit <- stat_glm(breaks ~ wool + tension, data = warpbreaks)
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock + culturetype + sex, data = harv)
 
-# Test difference between wool A and wool B
-contrast_glm(fit, list(wool = c(1, -1)), name = "Wool A vs B")
+# Test difference between Stock 1 and Stock 2
+contrast_glm(fit, list(stock = c(1, -1)), name = "Stock 1 vs 2")
 
 }

@@ -53,8 +53,8 @@
 #' Searle, S. R. (1971). \emph{Linear Models}. John Wiley & Sons.
 #'
 #' @examples
-#' data(mtcars)
-#' fit <- stat_glm(mpg ~ cyl + disp + hp, data = mtcars)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 #' summary(fit)
 #'
 #' @export

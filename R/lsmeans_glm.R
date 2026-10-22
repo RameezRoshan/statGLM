@@ -35,14 +35,14 @@
 #' \emph{The American Statistician}, 34(4), 216-221.
 #'
 #' @examples
-#' data(warpbreaks)
-#' fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 #'
 #' # LS-means for main effect
-#' lsmeans_glm(fit, effect = "wool")
+#' lsmeans_glm(fit, effect = "stock")
 #'
 #' # LS-means for interaction with Tukey adjustment
-#' lsmeans_glm(fit, effect = "wool:tension", adjust = "tukey")
+#' lsmeans_glm(fit, effect = "stock:culturetype", adjust = "tukey")
 #'
 #' @export
 lsmeans_glm <- function(object, effect, by = NULL, at = list(),
@@ -316,15 +316,13 @@ print.lsmeans_stat_glm <- function(x, digits = max(3L, getOption("digits") - 3L)
   cat("\nLeast-Squares Means for Effect:", x$effect, "\n\n")
   tab_lsm <- x$lsmeans[, -1, drop = FALSE]
   rownames(tab_lsm) <- x$lsmeans$Effect
-  stats::printCoefmat(as.matrix(tab_lsm), digits = digits, cs.ind = 1:2, tst.ind = 4L,
-                      zap.ps = TRUE, P.values = TRUE, has.Pvalue = TRUE, na.print = "Non-est")
+  print(tab_lsm, digits = digits, na.print = "Non-est")
 
   if (nrow(x$diffs) > 0) {
     cat(sprintf("\nDifferences of Least-Squares Means (Adjustment: %s):\n\n", toupper(x$adjust)))
     tab_diff <- x$diffs[, -1, drop = FALSE]
     rownames(tab_diff) <- x$diffs$Comparison
-    stats::printCoefmat(as.matrix(tab_diff), digits = digits, cs.ind = 1:2, tst.ind = 4L,
-                        zap.ps = TRUE, P.values = TRUE, has.Pvalue = TRUE, na.print = "Non-est")
+    print(tab_diff, digits = digits, na.print = "Non-est")
   }
   cat("\n")
   invisible(x)

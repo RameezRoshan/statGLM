@@ -112,11 +112,11 @@ devtools::install(".")
 ```r
 library(statGLM)
 
-# Load example data
-data(warpbreaks)
+# Load simulated fully factorial aquaculture harvest dataset (1,500 observations)
+data(harv)
 
-# Fit general linear model
-fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+# Fit general linear model (Factorial ANCOVA with initial weight covariate)
+fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 
 # Display model fit and overall ANOVA
 summary(fit)
@@ -131,47 +131,44 @@ anova_glm(fit, type = 1)
 # Type II (Hierarchical) Sums of Squares
 anova_glm(fit, type = 2)
 
-# Type III (Partial) Sums of Squares with Effect Sizes and 90% Confidence Intervals
-anova_glm(fit, type = 3, effectsize = TRUE, alpha = 0.10)
+# Type III (Partial) Sums of Squares with Effect Sizes and 95% Confidence Intervals
+anova_glm(fit, type = 3, effectsize = TRUE, alpha = 0.05)
 ```
 
 ### 3. Linear Contrasts & Parameter Estimates
 
 ```r
-# Test difference between Wool A and Wool B using named list
-contrast_glm(fit, list(wool = c(1, -1)), name = "Wool A vs B")
+# Fit main-effects model for single-DF linear hypotheses
+fit_main <- stat_glm(bw ~ bw0 + stock + culturetype + sex, data = harv)
+
+# Test genetic difference between Stock 1 and Stock 2
+contrast_glm(fit_main, list(stock = c(1, -1)), name = "Stock 1 vs 2")
 
 # Estimate contrast with standard error, t-test, and 95% confidence interval
-estimate_glm(fit, list(wool = c(1, -1)), name = "Wool A - B Difference")
+estimate_glm(fit_main, list(stock = c(1, -1)), name = "Stock 1 - 2 Difference")
 
-# Multi-DF contrast testing tension main effect (L, M, H)
-c_tension <- list(
-  "L vs M" = list(tension = c(1, -1, 0)),
-  "M vs H" = list(tension = c(0, 1, -1))
-)
-contrast_glm(fit, c_tension, name = "Tension Effect (2 DF)")
+# Contrast testing sex effect (Male vs Female)
+contrast_glm(fit_main, list(sex = c(1, -1)), name = "Male vs Female")
 ```
 
 ### 4. Least-Squares Means & Pairwise Comparisons
 
 ```r
-# Compute LS-means for main effect
-lsmeans_glm(fit, effect = "wool")
+# Compute LS-means for main genetic stock effect
+lsmeans_glm(fit, effect = "stock")
 
-# Compute LS-means for interaction with Tukey-Kramer adjustment
-lsm_inter <- lsmeans_glm(fit, effect = "wool:tension", adjust = "tukey")
+# Compute LS-means for stock x culturetype interaction with Tukey-Kramer adjustment
+lsm_inter <- lsmeans_glm(fit, effect = "stock:culturetype", adjust = "tukey")
 print(lsm_inter)
 ```
 
 ### 5. Multivariate Analysis of Variance (MANOVA)
 
 ```r
-data(iris)
+# Fit multivariate response model (initial stocking weight bw0 and final harvest weight bw)
+fit_m <- stat_glm(cbind(bw0, bw) ~ stock * culturetype, data = harv)
 
-# Fit multivariate response model
-fit_m <- stat_glm(cbind(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width) ~ Species, data = iris)
-
-# Evaluate multivariate statistics (Wilks, Pillai, Hotelling-Lawley, Roy)
+# Evaluate multivariate statistics (Wilks' Lambda, Pillai's Trace, Hotelling-Lawley, Roy's Root)
 manova_glm(fit_m)
 ```
 
@@ -180,15 +177,15 @@ manova_glm(fit_m)
 Declare random effects using standard formulas or character vectors (matching SAS GLM `RANDOM effects / TEST;`):
 
 ```r
-# Milliken & Johnson (1984) Unbalanced Mixed Model: Machine (fixed) and Person (random)
-fit <- stat_glm(rating ~ machine * person, data = dat)
+# Aquaculture selective breeding mixed model: Sires as random genetic family effect
+fit_rnd <- stat_glm(bw ~ bw0 + stock + culturetype + sex + sire, data = harv)
 
 # Compute Expected Mean Squares (EMS) and Satterthwaite mixed-model ANOVA tests
-rnd <- random_glm(fit, effects = ~ person + machine:person, test = TRUE)
+rnd <- random_glm(fit_rnd, effects = ~ sire, test = TRUE)
 print(rnd)
 
 # Or seamlessly via anova_glm()
-anova_glm(fit, type = 3, random = ~ person + machine:person)
+anova_glm(fit_rnd, type = 3, random = ~ sire)
 ```
 
 ### 7. Modern Publication-Ready Visualizations
@@ -203,11 +200,11 @@ library(ggplot2)
 plot(fit)
 
 # Auto-detects one-way layout -> produces box plot (PLOTS=BOXPLOT)
-fit_1way <- stat_glm(breaks ~ wool, data = warpbreaks)
+fit_1way <- stat_glm(bw ~ stock, data = harv)
 plot(fit_1way)
 
 # Auto-detects single continuous predictor -> produces fit curve with CLM & CLI bands (PLOTS=FITPLOT)
-fit_reg <- stat_glm(dist ~ speed, data = cars)
+fit_reg <- stat_glm(bw ~ bw0, data = harv)
 plot(fit_reg)
 
 # --- B. Comprehensive 8-Panel Fit Diagnostics (PLOTS=DIAGNOSTICS) ---
@@ -218,19 +215,19 @@ plot(fit, which = "diagnostics", label = TRUE)
 # Or extract as individual ggplot objects
 diag_plots <- plot(fit, which = "diagnostics", unpack = TRUE)
 
-# --- C. Residuals vs Continuous Covariates (PLOTS=RESIDUALS) ---
-plot(fit_reg, which = "residuals", smooth = TRUE)
+# --- C. Residuals vs Initial Weight Covariate (PLOTS=RESIDUALS) ---
+plot(fit, which = "residuals", smooth = TRUE)
 
 # --- D. Analysis of Covariance (ANCOVA) Plots (PLOTS=ANCOVAPLOT) ---
-fit_anc <- stat_glm(breaks ~ wool + tension_num, data = dat)
+fit_anc <- stat_glm(bw ~ stock + bw0, data = harv)
 plot(fit_anc, which = "ancovaplot", clm = TRUE)
 
 # --- E. 2D Response Surface Contour Plots (PLOTS=CONTOURFIT) ---
-fit_surf <- stat_glm(mpg ~ wt + hp, data = mtcars)
+fit_surf <- stat_glm(bw ~ bw0 + age, data = harv)
 plot(fit_surf, which = "contourfit", obs = "outlinegradient")
 
 # --- F. LS-Means Multiple Comparisons & Hsu's Diffogram (PLOTS=DIFFPLOT) ---
-lsm <- lsmeans_glm(fit, effect = "wool:tension", adjust = "tukey")
+lsm <- lsmeans_glm(fit, effect = "stock:culturetype", adjust = "tukey")
 
 # 1. LS-Means with 95% Confidence Intervals & connecting lines (PLOTS=MEANPLOT)
 plot(lsm, which = "meanplot", connect = TRUE)
@@ -240,7 +237,7 @@ plot(lsm, which = "meanplot", connect = TRUE)
 plot(lsm, which = "diffplot", center = TRUE)
 
 # 3. Dunnett-Style Control Comparisons (PLOTS=CONTROLPLOT)
-plot(lsm, which = "controlplot", control = "A:L")
+plot(lsm, which = "controlplot", control = "1:1")
 
 # 4. Analysis of Means Display (PLOTS=ANOMPLOT)
 # Grand mean central line with Upper and Lower Decision Limits (UDL / LDL)

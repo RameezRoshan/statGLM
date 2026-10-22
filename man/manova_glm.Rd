@@ -37,8 +37,8 @@ Pillai's Trace, Hotelling-Lawley Trace, and Roy's Greatest Root, along with
 their exact and approximate F distributions and significance levels.
 }
 \examples{
-data(iris)
-fit <- stat_glm(cbind(Sepal.Length, Sepal.Width) ~ Species, data = iris)
+data(harv)
+fit <- stat_glm(cbind(bw0, bw) ~ stock * culturetype, data = harv)
 manova_glm(fit)
 
 }

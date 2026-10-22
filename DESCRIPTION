@@ -8,6 +8,9 @@ Description: Clean-room implementation of general linear models, estimable
     variance, and modern publication-ready graphical displays matching SAS
     PROC GLM ODS Graphics.
 License: MIT + file LICENSE
+LazyData: true
+Depends:
+    R (>= 3.5.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:

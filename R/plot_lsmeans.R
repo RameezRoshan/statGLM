@@ -572,9 +572,9 @@ plot_lines <- function(object, alpha = NULL, theme_fn = theme_statglm, ...) {
 #' @return A \code{ggplot} object.
 #'
 #' @examples
-#' data(warpbreaks)
-#' fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
-#' lsm <- lsmeans_glm(fit, effect = "wool")
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
+#' lsm <- lsmeans_glm(fit, effect = "stock")
 #' plot(lsm) # Displays meanplot
 #'
 #' @export

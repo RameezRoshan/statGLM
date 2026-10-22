@@ -101,11 +101,11 @@ expand_contrast_matrix <- function(L, object) {
 #' }
 #'
 #' @examples
-#' data(warpbreaks)
-#' fit <- stat_glm(breaks ~ wool + tension, data = warpbreaks)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock + culturetype + sex, data = harv)
 #'
-#' # Test difference between wool A and wool B
-#' contrast_glm(fit, list(wool = c(1, -1)), name = "Wool A vs B")
+#' # Test difference between Stock 1 and Stock 2
+#' contrast_glm(fit, list(stock = c(1, -1)), name = "Stock 1 vs 2")
 #'
 #' @export
 contrast_glm <- function(object, L, name = NULL, rhs = 0, tol = 1e-7) {
@@ -207,11 +207,11 @@ print.contrast_stat_glm <- function(x, digits = max(3L, getOption("digits") - 3L
 #'   standard errors, t-values, p-values, and confidence bounds.
 #'
 #' @examples
-#' data(warpbreaks)
-#' fit <- stat_glm(breaks ~ wool + tension, data = warpbreaks)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock + culturetype + sex, data = harv)
 #'
-#' # Estimate wool effect A - B
-#' estimate_glm(fit, list(wool = c(1, -1)), name = "Wool A - Wool B")
+#' # Estimate Stock 1 - Stock 2 difference
+#' estimate_glm(fit, list(stock = c(1, -1)), name = "Stock 1 - Stock 2")
 #'
 #' @export
 estimate_glm <- function(object, L, name = NULL, rhs = 0, alpha = 0.05, tol = 1e-7) {
@@ -292,7 +292,6 @@ estimate_glm <- function(object, L, name = NULL, rhs = 0, alpha = 0.05, tol = 1e
 print.estimate_stat_glm <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat("\nParameter Estimates and Tests:\n\n")
   tab <- x$table[, -1, drop = FALSE]
-  stats::printCoefmat(as.matrix(tab), digits = digits, cs.ind = 1:2, tst.ind = 3L,
-                      zap.ps = TRUE, P.values = TRUE, has.Pvalue = TRUE, na.print = "Non-est")
+  print(tab, digits = digits, na.print = "Non-est")
   invisible(x)
 }

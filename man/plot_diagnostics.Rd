@@ -46,8 +46,8 @@ Includes:
 }
 }
 \examples{
-data(warpbreaks)
-fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 p_diag <- plot_diagnostics(fit)
 
 }

@@ -1,11 +1,21 @@
 # statGLM 0.2.1
 
+* **New Simulated Breeding Dataset (`data(harv)`)**:
+  - Added built-in aquaculture breeding dataset `harv` ($N = 1,500$) derived from experimental pedigree harvest records.
+  - Features fully factorial experimental design across `stock`, `batch`, `culturetype`, and `sex`, with hierarchical nesting of `dam` within `sire` and `sire` within `stock`.
+  - Accurately preserves all empirical genetic parameters: initial stocking weight `bw0` (mean 31.95, SD 18.27), final harvest weight `bw` (mean 134.92, SD 37.07), covariance $\text{Cov}(bw0, bw) \approx 481$, within-sire covariance $\approx 133.4$, and within-dam covariance $\approx 139.2$.
+  - Available immediately via `data(harv)` with `LazyData: true`.
+* **Package-Wide Example and Documentation Modernization**:
+  - Modernized all roxygen `@examples` across `stat_glm`, `anova_glm`, `contrast_glm`, `estimate_glm`, `lsmeans_glm`, `manova_glm`, `random_glm`, and visualization methods (`plot`, `plot_diagnostics`, `plot_lsmeans`, `plot_models`) to use `data(harv)`.
+  - Completely refreshed `README.md` Quick-Start Guide with comprehensive walkthroughs demonstrating ANCOVA, nested random effects testing, LS-means pairwise comparisons with diffograms, and SAS-style diagnostic graphics using `data(harv)`.
 * **Bug Fix for Type III Sums of Squares in Nested and Unbalanced Designs**:
   - Resolved degrees of freedom and sums of squares distortion in `anova_glm(..., type = 3)` for nested models and designs with structural empty cells.
   - Implemented a two-tiered engine: when the sum-contrast design matrix $X_{\text{sum}}$ is rank-deficient, `anova_glm()` calculates exact partial sums of squares and rank differences via submodel reduction on indicator columns for non-contained effects, and constructs exact estimable contrast matrices across populated strata for contained effects, matching SAS PROC GLM Type III SS and DF exactly.
 * **Bug Fix for Expected Mean Squares (EMS) and Satterthwaite Mixed Model Tests**:
   - In `random_glm()`, updated Goodnight & Speed (1978) Expected Mean Square calculations for rank-deficient nested models to evaluate quadratic form projections directly on the indicator column space.
   - Resolves variance component coefficients (e.g. for nested random effects like `dam(batch stock)`), ensuring exact denominator degrees of freedom, error term linear combinations, and pseudo-F test statistics matching SAS `RANDOM ... / TEST;`.
+* **Printing Stability Enhancement**:
+  - Replaced `stats::printCoefmat()` in `print.lsmeans_stat_glm()` and `print.estimate_stat_glm()` with robust table formatting to prevent errors when lower confidence limits are negative.
 
 # statGLM 0.2.0
 

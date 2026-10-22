@@ -49,14 +49,14 @@ means) and pairwise differences with multiple comparison adjustments
 combinations according to standard general linear model definitions.
 }
 \examples{
-data(warpbreaks)
-fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 
 # LS-means for main effect
-lsmeans_glm(fit, effect = "wool")
+lsmeans_glm(fit, effect = "stock")
 
 # LS-means for interaction with Tukey adjustment
-lsmeans_glm(fit, effect = "wool:tension", adjust = "tukey")
+lsmeans_glm(fit, effect = "stock:culturetype", adjust = "tukey")
 
 }
 \references{

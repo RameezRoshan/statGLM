@@ -34,11 +34,8 @@
 #' \emph{Communications in Statistics - Theory and Methods}, 7(9), 793-801.
 #'
 #' @examples
-#' a <- factor(c(1,1,1, 2,2,2, 3,3,3,3))
-#' b <- factor(c(1,1,2, 1,2,2, 1,1,2,2))
-#' y <- c(23.5, 23.7, 28.7, 8.9, 5.6, 8.9, 10.3, 12.5, 13.6, 14.6)
-#' df <- data.frame(a, b, y)
-#' fit <- stat_glm(y ~ a * b, data = df)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 #'
 #' # Type I, II, and III Sums of Squares
 #' anova_glm(fit, type = 1)

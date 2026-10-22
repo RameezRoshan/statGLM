@@ -112,8 +112,8 @@ compute_glm_diagnostics <- function(object, id_var = NULL) {
 #' @return A grob/gtable multi-panel arrangement (if \code{unpack = FALSE}) or a list of \code{ggplot} objects (if \code{unpack = TRUE}).
 #'
 #' @examples
-#' data(warpbreaks)
-#' fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+#' data(harv)
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 #' p_diag <- plot_diagnostics(fit)
 #'
 #' @export

@@ -25,9 +25,9 @@ A \code{ggplot} object.
 Master plotting method for \code{"lsmeans_stat_glm"} objects.
 }
 \examples{
-data(warpbreaks)
-fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
-lsm <- lsmeans_glm(fit, effect = "wool")
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
+lsm <- lsmeans_glm(fit, effect = "stock")
 plot(lsm) # Displays meanplot
 
 }

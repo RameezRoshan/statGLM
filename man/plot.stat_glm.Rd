@@ -29,8 +29,8 @@ design structure of the model and displays the appropriate SAS PROC GLM graphic,
 or produces specific requested plots via the \code{which} argument.
 }
 \examples{
-data(warpbreaks)
-fit <- stat_glm(breaks ~ wool * tension, data = warpbreaks)
+data(harv)
+fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
 plot(fit) # Automatically produces interaction plot
 plot(fit, which = "diagnostics")
 

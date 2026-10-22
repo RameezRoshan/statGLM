@@ -1,0 +1,39 @@
+#' Aquaculture Breeding Experiment and Harvest Data
+#'
+#' A simulated fully factorial aquaculture selective breeding dataset based on
+#' commercial harvest trials. The dataset contains 1,500 observations with
+#' full factorial crossing of experimental treatments (genetic stock, production
+#' batch, culture system, and sex) while preserving realistic pedigree structures,
+#' unequal subclass numbers (unbalancedness), and quantitative genetic covariance
+#' parameters (within-sire and within-dam covariances).
+#'
+#' @format A data frame with 1,500 rows and 11 variables:
+#' \describe{
+#'   \item{animal}{Integer identifier for each individual fish (1 to 1500).}
+#'   \item{sire}{Factor with 50 levels identifying the paternal sire.}
+#'   \item{dam}{Factor with 80 levels identifying the maternal dam (nested within sire).}
+#'   \item{stock}{Factor with 2 levels (1, 2) denoting the genetic stock/strain.}
+#'   \item{batch}{Factor with 2 levels (1, 2) denoting the production rearing batch.}
+#'   \item{culturetype}{Factor with 2 levels (1, 2) denoting the culture rearing system.}
+#'   \item{pond}{Factor with 8 levels (1 to 8) identifying the rearing pond (nested within batch).}
+#'   \item{sex}{Factor with 2 levels (1 = Male, 2 = Female).}
+#'   \item{age}{Harvest age in days (ranging from 180 to 360 days).}
+#'   \item{bw0}{Initial stocking body weight in grams (continuous covariate).}
+#'   \item{bw}{Final harvest body weight in grams (primary continuous response variable).}
+#' }
+#'
+#' @source Simulated based on real commercial aquaculture harvest trial data (`harv`).
+#'
+#' @examples
+#' data(harv)
+#' head(harv)
+#'
+#' # Factorial ANCOVA with stocking weight covariate
+#' fit <- stat_glm(bw ~ bw0 + stock * culturetype + sex, data = harv)
+#' summary(fit)
+#'
+#' # Mixed model with sire as random genetic family effect
+#' fit_rnd <- stat_glm(bw ~ bw0 + stock + culturetype + sex + sire, data = harv)
+#' rnd <- random_glm(fit_rnd, effects = ~ sire, test = TRUE)
+#' print(rnd)
+"harv"
